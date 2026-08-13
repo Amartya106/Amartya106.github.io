@@ -6,17 +6,17 @@
 /* --- Tokens ------------------------------------------------------------- */
 
 :root {
-  --bg: #0b0d10;
-  --bg-elev: #12151a;
-  --bg-sunk: #08090c;
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --text: #e7e9ec;
-  --text-dim: #9aa3ae;
-  --text-faint: #6b7480;
-  --accent: #4fd1c5;
-  --accent-dim: rgba(79, 209, 197, 0.14);
-  --accent-text: #4fd1c5;
+  --bg: #0d1420;
+  --bg-elev: #141d2c;
+  --bg-sunk: #0a0f18;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --text: #e8ecf2;
+  --text-dim: #9aa8ba;
+  --text-faint: #69768a;
+  --accent: #e8a33d;
+  --accent-dim: rgba(232, 163, 61, 0.14);
+  --accent-text: #eeb75c;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -38,17 +38,17 @@
 }
 
 [data-theme="light"] {
-  --bg: #fbfbfa;
+  --bg: #f7f7f5;
   --bg-elev: #ffffff;
-  --bg-sunk: #f2f2f0;
-  --border: rgba(0, 0, 0, 0.11);
-  --border-strong: rgba(0, 0, 0, 0.2);
-  --text: #15181c;
-  --text-dim: #565e69;
-  --text-faint: #838b95;
-  --accent: #0d9488;
-  --accent-dim: rgba(13, 148, 136, 0.11);
-  --accent-text: #0b7f75;
+  --bg-sunk: #eeeeec;
+  --border: rgba(13, 20, 32, 0.1);
+  --border-strong: rgba(13, 20, 32, 0.2);
+  --text: #14181f;
+  --text-dim: #565f6c;
+  --text-faint: #838c98;
+  --accent: #b3691a;
+  --accent-dim: rgba(179, 105, 26, 0.12);
+  --accent-text: #9c5a15;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
