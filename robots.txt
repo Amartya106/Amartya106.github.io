@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://amartya106.github.io/sitemap.xml

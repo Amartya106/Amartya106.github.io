@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CartPole: From Heuristic to DQN — Amartya Mishra</title>
+<meta name="description" content="Three controllers on the same environment — random, rule-based, and a DQN — compared to see what reinforcement learning actually buys over a designed policy.">
+<link rel="canonical" href="https://amartya106.github.io/projects/rl-cartpole-dqn/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CartPole: From Heuristic to DQN">
+<meta property="og:description" content="What reinforcement learning buys you over a hand-written controller, measured on the same axes.">
+<meta property="og:url" content="https://amartya106.github.io/projects/rl-cartpole-dqn/">
+<meta property="og:image" content="https://amartya106.github.io/assets/img/projects/rl-training.png">
+<meta name="theme-color" content="#0b0d10">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';d.setAttribute('data-theme',t);}catch(e){}if('IntersectionObserver' in window&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.className='js';})();</script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/"><span class="brand-dot"></span><span>amartya mishra</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/projects/" aria-current="page">Projects</a>
+      <a href="/about/">About</a>
+    </nav>
+    <a class="icon-btn" href="https://github.com/Amartya106" aria-label="GitHub profile" rel="me noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.2 11.39.6.1.82-.26.82-.58v-2.03c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.62-2.8 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z"/></svg>
+    </a>
+    <button class="icon-btn theme-toggle" type="button" aria-label="Switch theme">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="case-header">
+    <div class="wrap wrap-narrow" style="margin-inline:auto">
+      <a class="back" href="/projects/">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        All projects
+      </a>
+      <div class="tags" style="margin-bottom:16px">
+        <span class="tag tag-accent">Reinforcement Learning</span>
+        <span class="tag">Control</span>
+        <span class="tag">PyTorch</span>
+      </div>
+      <h1>CartPole: from a hand-written rule to a learned policy</h1>
+      <p class="lede">
+        CartPole is an inverted pendulum — the textbook control problem — dressed up as
+        an RL benchmark. That makes it the right place to ask a question I actually
+        care about: what does learning give you that a designed controller doesn't?
+      </p>
+
+      <div class="meta-row">
+        <div><span>Role</span>Solo build</div>
+        <div><span>Year</span>2026</div>
+        <div><span>Env</span>Gymnasium CartPole-v1</div>
+        <div><span>Code</span><a href="https://github.com/Amartya106/rl-learning-exps" rel="noopener">GitHub ↗</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap wrap-narrow prose" style="margin-inline:auto">
+
+      <h2>Three agents, one environment</h2>
+      <p>
+        Rather than jumping straight to a DQN, I built up in three steps so that each
+        one had something to be compared against.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Agent</th><th>Policy</th><th>What it establishes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Random</td><td>Uniform action sampling</td><td>The floor — what zero information looks like</td></tr>
+            <tr><td>Rule-based</td><td>Hand-written on pole angle</td><td>What domain knowledge alone achieves</td></tr>
+            <tr><td>DQN</td><td>Learned Q-function</td><td>What learning adds on top</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The rule-based controller matters most here. It's easy to be impressed by an RL
+        agent balancing a pole until you write twenty lines that push the cart in the
+        direction the pole is falling and watch that do respectably too. Having that
+        baseline in front of me kept the comparison honest.
+      </p>
+
+      <h2>Training</h2>
+
+      <figure>
+        <img src="/assets/img/projects/rl-training.png" width="640" height="480" loading="lazy"
+             alt="Episode reward and its moving average rising across training episodes for the DQN agent"
+             style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:8px">
+        <figcaption>Per-episode reward with a moving average. The variance is the story, not the trend line.</figcaption>
+      </figure>
+
+      <p>
+        The moving average climbs, which is the result you want. The raw per-episode
+        reward underneath it is far more interesting: it stays noisy well after the
+        average looks healthy. A DQN that has "solved" CartPole on average can still
+        drop an episode, because ε-greedy exploration keeps injecting random actions
+        and the Q-function is being chased by its own bootstrapped targets.
+      </p>
+
+      <div class="callout">
+        <p>
+          <strong>The gap between the average and the worst case is the whole problem
+          with putting RL on hardware.</strong> A control engineer asks for a stability
+          guarantee; a reward curve offers a trend. That tension is most of why I'm
+          reading Ogata alongside this.
+        </p>
+      </div>
+
+      <h2>What I took from it</h2>
+      <ul>
+        <li><strong>Exploration vs exploitation is a scheduling problem.</strong> The ε decay schedule changed results more than the network architecture did.</li>
+        <li><strong>Replay buffers exist to break correlation.</strong> Consecutive frames of a falling pole are almost the same sample; training on them in order is training on one data point repeatedly.</li>
+        <li><strong>A value function is not a controller.</strong> It's an estimate of return that a policy is derived from — and the derivation is where the fragility lives.</li>
+      </ul>
+
+      <h2>Where this goes</h2>
+      <p>
+        CartPole is a stepping stone, not a destination. The path I'm on:
+      </p>
+      <ul>
+        <li>LunarLander with a DQN — a harder credit-assignment problem with shaped rewards worth analysing.</li>
+        <li>Continuous action spaces, where value-based methods stop being enough.</li>
+        <li>MuJoCo manipulation, which is the actual target: RL that moves a real arm, with control theory keeping it safe.</li>
+      </ul>
+
+      <p style="margin-top:38px">
+        <a class="btn btn-ghost" href="https://github.com/Amartya106/rl-learning-exps" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.2 11.39.6.1.82-.26.82-.58v-2.03c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.62-2.8 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z"/></svg>
+          Source on GitHub
+        </a>
+      </p>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="year">2026</span> Amartya Mishra · IIT (BHU) Varanasi</span>
+    <nav aria-label="Footer">
+      <a href="/">Home</a>
+      <a href="/projects/">Projects</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/assets/js/main.js" defer></script>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>
