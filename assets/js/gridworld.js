@@ -22,7 +22,7 @@
   document.body.appendChild(cv); document.body.appendChild(hud);
   var ctx = cv.getContext("2d");
 
-  var Wl = 0, coins = [], got = 0, ep = 1, maxP = 0, p = 0, lastP = 0, dir = 1, frame = 0, moving = false, lastMove = 0, raf = 0, flash = 0;
+  var allSent = false, Wl = 0, coins = [], got = 0, ep = 1, maxP = 0, p = 0, lastP = 0, dir = 1, frame = 0, moving = false, lastMove = 0, raf = 0, flash = 0;
 
   function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 
@@ -80,6 +80,7 @@
     if (p > maxP) maxP = p;
     if (p < 0.02 && maxP > 0.96) { ep++; maxP = 0; got = 0; coins.forEach(function (k) { k.taken = false; }); }
     coins.forEach(function (k) { if (!k.taken && p >= k.c) { k.taken = true; got++; if (!silent) flash = 6; } });
+    if (!silent && coins.length && got === coins.length && !allSent) { allSent = true; document.dispatchEvent(new CustomEvent("gw:allcoins")); }
     if (Math.abs(p - lastP) > 1e-4) dir = p > lastP ? 1 : -1;
     lastP = p;
     draw(); hudText();

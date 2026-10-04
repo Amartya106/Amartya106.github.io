@@ -508,3 +508,45 @@ figure img { border: 3px solid var(--ink); }
 .sim-wrap canvas { cursor: crosshair; }
 
 .sim-wrap .tick { display: none; }
+
+/* ═══ Pixel content ══════════════════════════════════════════════════ */
+
+.px-icon { image-rendering: pixelated; display: inline-block; vertical-align: -9px; margin-right: 12px; background: #0b1030; padding: 3px; box-shadow: 0 0 0 2px var(--ink); }
+.px-icon-big { display: block; margin: 4px 0 18px; vertical-align: baseline; }
+.index .t { display: flex; align-items: center; }
+.index a.row:hover .px-icon { box-shadow: 0 0 0 2px var(--paper); }
+
+/* RPG dialogue box for callouts */
+.callout.dlg {
+  position: relative; background: var(--paper-2); border-left: 0; padding: 24px 24px 20px; margin: 2.2em 0; font-style: normal; font-family: var(--serif); font-size: 1.08rem; font-weight: 400; line-height: 1.5;
+  box-shadow: 0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink);
+}
+.callout.dlg::before { content: "NOTE"; position: absolute; top: -17px; left: 14px; background: var(--accent); color: var(--on-accent); font-family: var(--pixel); font-size: .64rem; padding: 4px 9px 2px; letter-spacing: .12em; }
+.callout.dlg::after { content: "\25BC"; position: absolute; right: 12px; bottom: 7px; color: var(--accent); font-size: .8rem; animation: dlgBlink 1s steps(2) infinite; }
+@keyframes dlgBlink { 50% { opacity: 0; } }
+.dlg-hide { clip-path: inset(0 0 100% 0); }
+.dlg-type { animation: dlgType 1s steps(var(--lines, 3)) forwards; }
+@keyframes dlgType { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* achievements */
+.ach-toast {
+  position: fixed; left: 50%; bottom: 92px; z-index: 9; display: flex; gap: 12px; align-items: center; pointer-events: none;
+  background: var(--paper); color: var(--ink); padding: 10px 18px 8px 12px; font-family: var(--pixel); opacity: 0; transform: translate(-50%, 28px);
+  box-shadow: 0 -4px 0 0 var(--accent), 0 4px 0 0 var(--accent), -4px 0 0 0 var(--accent), 4px 0 0 0 var(--accent);
+  transition: transform .3s steps(5), opacity .2s;
+}
+.ach-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.ach-toast span { display: block; font-size: .56rem; letter-spacing: .12em; color: var(--accent); margin-bottom: 4px; }
+.ach-toast b { font-size: .72rem; font-weight: 400; }
+.ach-count { font-family: var(--pixel); font-size: .66rem; color: var(--accent); cursor: help; }
+
+/* status glyphs */
+.st-result::before { content: "\2605  "; }
+.st-wip::before { content: "\25B6  "; }
+.st-design::before { content: "\25A0  "; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dlg-hide { clip-path: none; }
+  .callout.dlg::after { animation: none; }
+  .ach-toast { transition: none; }
+}

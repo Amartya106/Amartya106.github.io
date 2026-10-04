@@ -22,7 +22,7 @@
   var DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];                       // up, right, down, left
   var ALPHA = 0.25, GAMMA = 0.95, EPS_MIN = 0.04, EPS_DECAY = 0.985, STEP_R = -0.04, BUMP_R = -0.2, BLOCK_R = -0.5, PIT_R = -10, GOAL_R = 10, MAXSTEPS = 120;
 
-  var grid = [], agents = [], eps = 1, ep = 0, steps = 0, hist = [], wins = [], running = false, visible = true, last = 0, raf = 0, col = {};
+  var learned = false, grid = [], agents = [], eps = 1, ep = 0, steps = 0, hist = [], wins = [], running = false, visible = true, last = 0, raf = 0, col = {};
   var w = 0, h = 0, dpr = 1, T = 20, mx = 0, my = 0, plot = null;
 
   var BOT = ["...XX...", ".XXXXXX.", "XXOXXOXX", "XXXXXXXX", ".XXXXXX.", ".XXXXXX.", ".XX..XX.", ".XX..XX."];
@@ -73,6 +73,7 @@
   function endEpisode() {
     hist.push(agents[0].ret); wins.push(agents[0].win ? 1 : 0); if (hist.length > 400) { hist.shift(); wins.shift(); }
     ep++; eps = Math.max(EPS_MIN, eps * EPS_DECAY); restartEpisode();
+    if (!learned && ep >= 20 && successRate() >= 0.9) { learned = true; document.dispatchEvent(new CustomEvent("gw:learned")); }
   }
   function successRate() { var n = Math.min(20, wins.length); if (!n) return 0; var s = 0; for (var i = wins.length - n; i < wins.length; i++) s += wins[i]; return s / n; }
 
@@ -182,6 +183,7 @@
     else if (t === "erase") grid[i] = FLOOR;
     else if (t === "goal") { if (grid[i] === WALL) return; for (var k = 0; k < grid.length; k++) if (grid[k] === GOAL) grid[k] = FLOOR; grid[i] = GOAL; }
     eps = Math.max(eps, 0.35); restartEpisode();
+    document.dispatchEvent(new CustomEvent("gw:edited"));
     if (reduced) trainOffline(200); else draw();
   });
   if (resetBtn) resetBtn.addEventListener("click", function () { resetAll(); if (reduced) trainOffline(200); else draw(); });
