@@ -33,7 +33,7 @@
   }
   var col = {};
   function readColours() {
-    col.ink = css("--ink"); col.muted = css("--muted"); col.rule = css("--rule"); col.accent = css("--accent");
+    col.ink = css("--ink"); col.muted = css("--muted"); col.rule = css("--sim-edge") || css("--rule"); col.accent = css("--accent");
   }
 
   function scatter() {
@@ -86,7 +86,7 @@
     ctx.clearRect(0, 0, w, h);
     var r2 = (R * s) * (R * s), i, j, edges = 0, err = 0;
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
     ctx.strokeStyle = col.rule;
     ctx.beginPath();
     for (i = 0; i < N; i++) {
@@ -114,9 +114,8 @@
       var ex = a.x - (leader.x + Math.cos(a.a) * rr), ey = a.y - (leader.y + Math.sin(a.a) * rr);
       err += Math.sqrt(ex * ex + ey * ey);
       ctx.fillStyle = i === 0 ? col.accent : col.ink;
-      ctx.beginPath();
-      ctx.arc(a.x, a.y, i === 0 ? 4.2 : 3, 0, Math.PI * 2);
-      ctx.fill();
+      var q = i === 0 ? 10 : 8;
+      ctx.fillRect(Math.round(a.x / 2) * 2 - q / 2, Math.round(a.y / 2) * 2 - q / 2, q, q);
     }
 
     if (readEdges) readEdges.textContent = edges;
