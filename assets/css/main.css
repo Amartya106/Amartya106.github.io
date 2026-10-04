@@ -495,3 +495,16 @@ figure img { border: 3px solid var(--ink); }
   .mast, .section, .case { margin: 22px 4px; }
   .prose { margin: 22px 4px; }
 }
+
+/* Q-learning controls */
+.q-controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-top: 12px; padding: 10px 12px; background: var(--paper-2); font-family: var(--pixel); font-size: .72rem; text-transform: uppercase;
+  box-shadow: 0 -3px 0 0 var(--rule), 0 3px 0 0 var(--rule), -3px 0 0 0 var(--rule), 3px 0 0 0 var(--rule); }
+.q-controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.q-controls input[type=radio], .q-controls input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+.q-tools { display: flex; gap: 12px; align-items: center; border: 0; padding: 0; margin: 0; }
+.q-tools legend { float: left; margin-right: 10px; padding: 0; color: var(--accent); }
+.q-controls select, .q-controls button { font: inherit; text-transform: uppercase; padding: 4px 10px 2px; background: var(--paper); color: var(--ink); border: 0; cursor: pointer; box-shadow: 0 0 0 2px var(--ink); }
+.q-controls button:hover, .q-controls select:hover { background: var(--accent); color: var(--on-accent); }
+.sim-wrap canvas { cursor: crosshair; }
+
+.sim-wrap .tick { display: none; }

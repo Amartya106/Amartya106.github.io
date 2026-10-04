@@ -62,21 +62,34 @@
   <section aria-label="Figure 1">
     <figure class="fig-wide" style="margin-top:8px">
       <div class="sim-wrap">
-        <span class="tick">x, y ∈ R² · single-integrator agents</span>
-        <canvas id="swarm" aria-label="Animated figure: 24 agents using only neighbour information converge to a ring formation around the cursor"></canvas>
+        <span class="tick">Q-LEARNING &middot; 12&times;7 gridworld</span>
+        <canvas id="swarm" aria-label="Animated gridworld: a tabular Q-learning agent explores, falls into pits and learns a route to the goal; arrows show the learned policy and the tint shows learned value"></canvas>
+      </div>
+      <div class="q-controls">
+        <fieldset class="q-tools">
+          <legend>Click tool</legend>
+          <label><input type="radio" name="q-tool" value="wall" checked> Wall</label>
+          <label><input type="radio" name="q-tool" value="pit"> Pit</label>
+          <label><input type="radio" name="q-tool" value="goal"> Goal</label>
+          <label><input type="radio" name="q-tool" value="erase"> Erase</label>
+        </fieldset>
+        <label>Speed <select id="q-speed"><option value="3">&times;1</option><option value="12">&times;4</option><option value="48">&times;16</option></select></label>
+        <label><input type="checkbox" id="q-two"> 2nd learner</label>
+        <button type="button" id="q-reset">Forget</button>
       </div>
       <div class="readout" aria-hidden="true">
-        <span>agents <b>24</b></span>
-        <span>comm. edges <b data-sim-edges>–</b></span>
-        <span>mean slot error <b data-sim-err>–</b></span>
-        <span>t <b data-sim-t>–</b></span>
+        <span>episode <b data-sim-edges>&ndash;</b></span>
+        <span>return <b data-q-ret>&ndash;</b></span>
+        <span>success (last 20) <b data-sim-err>&ndash;</b></span>
+        <span>&epsilon; <b data-sim-t>&ndash;</b></span>
       </div>
       <figcaption>
         <span class="fn">Fig. 1</span>
-        A distributed formation protocol on a communication graph. Each agent sees
-        only neighbours within radius <var>R</var>; move the pointer to move the
-        leader, click to scatter. An illustration of the coordination problem I want
-        to study, not a result.
+        A tabular Q-learning agent in a 12&times;7 grid. It starts knowing nothing, explores
+        &epsilon;-greedily, and learns from the Bellman update; arrows show the greedy policy and the
+        tint shows learned value. Click tiles to add walls or pits or to move the goal and watch it
+        re-learn; add a second independent learner and the two must share the corridors. An
+        illustration of the algorithm, not a result.
       </figcaption>
     </figure>
   </section>
@@ -200,7 +213,7 @@
 
 <script src="/assets/js/main.js" defer></script>
 <script src="/assets/js/gridworld.js" defer></script>
-<script src="/assets/js/swarm.js" defer></script>
+<script src="/assets/js/qgrid.js" defer></script>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
 </body>
 </html>
