@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLAM and navigation on a mecanum base — Amartya Mishra</title>
+<meta name="description" content="A ROS 2 Jazzy navigation stack for a simulated mecanum robot: slam_toolbox, robot_localization EKF, AMCL and Nav2 with MPPI, with measured odometry drift and localisation error.">
+<meta name="author" content="Amartya Mishra">
+<link rel="canonical" href="https://amartya106.github.io/projects/slam-nav-mecanum/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SLAM and navigation on a mecanum base — Amartya Mishra">
+<meta property="og:description" content="A ROS 2 Jazzy navigation stack for a simulated mecanum robot: slam_toolbox, robot_localization EKF, AMCL and Nav2 with MPPI, with measured odometry drift and localisation error.">
+<meta property="og:url" content="https://amartya106.github.io/projects/slam-nav-mecanum/">
+<meta property="og:image" content="https://amartya106.github.io/assets/img/projects/slam-nav-mecanum/warehouse_map.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f3ec">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&display=swap">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);}catch(e){d.setAttribute('data-theme','light');}if('IntersectionObserver' in window&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.className='js';})();</script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">Amartya Mishra</a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Notebook</a>
+      <a href="/projects/" aria-current="page">Work</a>
+      <a href="/about/">About</a>
+    </nav>
+    <span class="nav-tools">
+      <a href="https://github.com/Amartya106" rel="me noopener">github ↗</a>
+      <button class="theme-toggle" type="button" aria-label="Switch theme"></button>
+    </span>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap has-margin">
+
+  <section class="case">
+    <a class="back" href="/projects/">← Work</a>
+    <h1>SLAM and navigation on a mecanum base</h1>
+    <p class="abstract">
+      A full localisation and navigation stack for a simulated omnidirectional robot
+      in a warehouse. The headline measurement is how badly wheel odometry alone
+      drifts, and how much each layer of the stack buys back.
+    </p>
+    <div class="meta-row">
+      <div><span>Status</span>result</div>
+      <div><span>Year</span>2026</div>
+      <div><span>Stack</span>ROS 2 Jazzy · Gazebo Harmonic</div>
+      <div><span>Code</span><a href="https://github.com/Amartya106/inter-iit-prep-ground-robo-15.0" rel="noopener">GitHub ↗</a></div>
+    </div>
+  </section>
+
+  <div class="prose">
+
+    <h2><span class="n">1</span>Pipeline</h2>
+    <p>
+      The starting point was a supplied robot package with bugs in it, which I fixed
+      first. On top of it I built:
+    </p>
+    <ul>
+      <li><strong>Mapping:</strong> <code>slam_toolbox</code>.</li>
+      <li><strong>State estimation:</strong> an EKF from <code>robot_localization</code>.</li>
+      <li><strong>Localisation on a known map:</strong> AMCL with the omnidirectional motion model.</li>
+      <li><strong>Planning and control:</strong> Nav2 with the Smac 2D planner and the MPPI controller.</li>
+      <li><strong>Command arbitration:</strong> <code>twist_mux</code>.</li>
+    </ul>
+    <p>
+      MPPI<label for="sn1" class="sn-toggle"></label><input type="checkbox" id="sn1" class="sn-cb"><span class="sidenote">Model Predictive Path Integral control (Williams et al., 2017), a sampling-based MPC. It suits a holonomic base because it can sample lateral velocity directly.</span>
+      is a good match for a mecanum base, where sideways motion is a free action
+      dimension.
+    </p>
+
+    <h2><span class="n">2</span>Measured drift</h2>
+    <div class="table-wrap">
+      <table>
+        <caption>Position error on 50–80 m paths in the simulated warehouse.</caption>
+        <thead><tr><th>Source of pose</th><th class="num">Error</th></tr></thead>
+        <tbody>
+          <tr><td>Raw wheel odometry</td><td class="num">35–55 m (about 70% of distance)</td></tr>
+          <tr><td>EKF fed ground-truth-derived odometry</td><td class="num">0.00–0.01 m</td></tr>
+          <tr><td>SLAM-corrected pose</td><td class="num">0.02–0.04 m</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <p>
+        The EKF row is not a realistic estimate. Its input was derived from
+        simulator ground truth, so it shows what the filter does with a perfect
+        measurement. The SLAM-corrected row is the honest one.
+      </p>
+    </div>
+
+    <figure>
+      <img src="/assets/img/projects/slam-nav-mecanum/warehouse_map.png" width="477" height="760" loading="lazy" style="max-width:320px"
+           alt="Occupancy grid map of the warehouse: white free space with black obstacles, fan-shaped unexplored gaps at the edges">
+      <figcaption><span class="fn">Fig. 1</span>Map built by <code>slam_toolbox</code>. It is incomplete: the LiDAR reaches 12 m and the warehouse is roughly 30 × 34 m, so wide areas are never observed from the path driven.</figcaption>
+    </figure>
+
+    <h2><span class="n">3</span>What I would do next</h2>
+    <ul>
+      <li>Replace the ground-truth-derived input with realistic wheel odometry plus IMU, and report the EKF error again.</li>
+      <li>Drive a coverage path so the map is complete before evaluating AMCL against it.</li>
+      <li>Compare MPPI against the other Nav2 controllers on the same paths.</li>
+    </ul>
+
+    <h2><span class="n">4</span>References</h2>
+    <ul>
+      <li>Macenski &amp; Jambrecic (2021). SLAM Toolbox. Journal of Open Source Software.</li>
+      <li>Macenski et al. (2020). The Marathon 2: A Navigation System. IROS.</li>
+      <li>Williams et al. (2017). Information Theoretic MPC for Model-Based Reinforcement Learning. ICRA.</li>
+    </ul>
+  </div>
+</div>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="year">2026</span> Amartya Mishra · IIT (BHU) Varanasi</span>
+    <nav aria-label="Footer">
+      <a href="/">Notebook</a>
+      <a href="/projects/">Work</a>
+      <a href="/about/">About</a>
+      <a href="https://github.com/Amartya106" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/assets/js/main.js" defer></script>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>

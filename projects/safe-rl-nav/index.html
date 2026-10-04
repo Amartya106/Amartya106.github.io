@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safe RL navigation — Amartya Mishra</title>
+<meta name="description" content="Work in progress: constrained reinforcement learning for a point robot in MuJoCo, comparing a collision penalty, PPO-Lagrangian and a discrete-time barrier cost. Environment built, training not yet run.">
+<meta name="author" content="Amartya Mishra">
+<link rel="canonical" href="https://amartya106.github.io/projects/safe-rl-nav/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Safe RL navigation — Amartya Mishra">
+<meta property="og:description" content="Work in progress: constrained reinforcement learning for a point robot in MuJoCo, comparing a collision penalty, PPO-Lagrangian and a discrete-time barrier cost. Environment built, training not yet run.">
+<meta property="og:url" content="https://amartya106.github.io/projects/safe-rl-nav/">
+<meta property="og:image" content="https://amartya106.github.io/assets/img/projects/safe-rl-nav/step_response.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f3ec">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&display=swap">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);}catch(e){d.setAttribute('data-theme','light');}if('IntersectionObserver' in window&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.className='js';})();</script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">Amartya Mishra</a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Notebook</a>
+      <a href="/projects/" aria-current="page">Work</a>
+      <a href="/about/">About</a>
+    </nav>
+    <span class="nav-tools">
+      <a href="https://github.com/Amartya106" rel="me noopener">github ↗</a>
+      <button class="theme-toggle" type="button" aria-label="Switch theme"></button>
+    </span>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap has-margin">
+
+  <section class="case">
+    <a class="back" href="/projects/">← Work</a>
+    <h1>Safe RL navigation: three ways to hold a constraint</h1>
+    <p class="abstract">
+      A robot has to reach a goal without touching obstacles. The experiment is about
+      <em>how</em> the safety requirement enters the learning: as a penalty, as a
+      constrained optimisation, or as a barrier condition. This page is a design and a
+      status report. There are no training results yet.
+    </p>
+    <div class="meta-row">
+      <div><span>Status</span><span class="st st-wip" style="margin:0">in progress</span></div>
+      <div><span>Year</span>2026</div>
+      <div><span>Stack</span>MuJoCo · Gymnasium</div>
+      <div><span>Algorithm</span>PPO (all phases)</div>
+      <div><span>Code</span><a href="https://github.com/Amartya106/safe-rl-nav" rel="noopener">GitHub ↗</a></div>
+    </div>
+  </section>
+
+  <div class="prose">
+
+    <h2><span class="n">1</span>Environment</h2>
+    <p>
+      A disc robot of radius 0.15 m in an 8 × 8 m arena with up to eight obstacles
+      (radius 0.2–0.5 m). The observation is 21-dimensional and includes 16 rangefinder
+      rays; the action is a 2-D velocity command. Physics steps at 2 ms and control at
+      50 ms, with 400-step episodes.
+    </p>
+
+    <figure>
+      <img src="/assets/img/projects/safe-rl-nav/step_response.png" width="640" height="480" loading="lazy"
+           alt="Actuator step response of the simulated robot, a first-order rise to the commanded velocity">
+      <figcaption><span class="fn">Fig. 1</span>The one check run so far: the actuator step response. Its time constant matches the value predicted from the model's mass and velocity gain.</figcaption>
+    </figure>
+
+    <h2><span class="n">2</span>Three formulations</h2>
+    <p>
+      Every phase uses the same learner, so differences come from how safety is
+      encoded.
+    </p>
+    <ol>
+      <li>
+        <strong>Penalty.</strong> Shape the reward directly:
+        <div class="math"><var>r</var>′ = <var>r</var> − <var>k</var> · 1[collision]<span class="q">(1)</span></div>
+        Simple, but the constraint is only as strong as the weight <var>k</var>.
+      </li>
+      <li>
+        <strong>PPO-Lagrangian.</strong> Treat collisions as a cost with a budget
+        <var>d</var> and learn a multiplier by dual ascent:
+        <div class="math">max<sub>π</sub> <var>J</var><sub><var>r</var></sub>(π) &nbsp; s.t. &nbsp; <var>J</var><sub><var>c</var></sub>(π) ≤ <var>d</var><span class="q">(2)</span></div>
+        The multiplier λ rises while the budget is exceeded, so the weight is learned
+        and not hand-tuned.
+      </li>
+      <li>
+        <strong>Barrier cost.</strong> Penalise violation of a discrete-time barrier
+        condition on a clearance function <var>h</var>:
+        <div class="math"><var>h</var>(<var>x</var><sub><var>t</var>+1</sub>) − <var>h</var>(<var>x</var><sub><var>t</var></sub>) ≥ −α <var>h</var>(<var>x</var><sub><var>t</var></sub>)<span class="q">(3)</span></div>
+        Unlike (1) and (2), this penalises <em>approaching</em> an obstacle too fast
+        before any collision has happened.<label for="sn1" class="sn-toggle"></label><input type="checkbox" id="sn1" class="sn-cb"><span class="sidenote">This is the discrete-time control barrier function condition from the safe-control literature. Here it is used as a training signal, not as a hard filter on actions, so it does not give a guarantee by itself.</span>
+      </li>
+    </ol>
+
+    <h2><span class="n">3</span>What will be measured</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Metric</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Success rate</td><td>Does it still do the task</td></tr>
+          <tr><td>Collision rate</td><td>The constraint violation at evaluation</td></tr>
+          <tr><td>Cumulative cost</td><td>Compared against the budget <var>d</var></td></tr>
+          <tr><td>Minimum clearance</td><td>How close it gets, not just whether it hits</td></tr>
+          <tr><td>Collisions during training</td><td>Whether safety held <em>while learning</em></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2><span class="n">4</span>Status</h2>
+    <p>
+      The environment exists and the actuator model checks out. <code>step()</code>, the
+      reward and all training are not written yet. When results exist they will
+      replace this section, with the failures included.
+    </p>
+
+    <p class="label" style="margin-top:2em">Why this matters for what comes next</p>
+    <p>
+      Holding a constraint during learning is also the single-agent version of a
+      multi-agent problem: agents that must not collide with each other while they
+      learn to coordinate. This is the stepping stone.
+    </p>
+  </div>
+</div>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="year">2026</span> Amartya Mishra · IIT (BHU) Varanasi</span>
+    <nav aria-label="Footer">
+      <a href="/">Notebook</a>
+      <a href="/projects/">Work</a>
+      <a href="/about/">About</a>
+      <a href="https://github.com/Amartya106" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/assets/js/main.js" defer></script>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>

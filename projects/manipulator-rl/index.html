@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manipulation RL with a 7-DOF arm — Amartya Mishra</title>
+<meta name="description" content="A staged RL curriculum on a simulated KUKA iiwa in PyBullet: reaching, pick-and-place and obstacle avoidance solved, peg-in-hole not, with the evaluation and failure analysis.">
+<meta name="author" content="Amartya Mishra">
+<link rel="canonical" href="https://amartya106.github.io/projects/manipulator-rl/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Manipulation RL with a 7-DOF arm — Amartya Mishra">
+<meta property="og:description" content="A staged RL curriculum on a simulated KUKA iiwa in PyBullet: reaching, pick-and-place and obstacle avoidance solved, peg-in-hole not, with the evaluation and failure analysis.">
+<meta property="og:url" content="https://amartya106.github.io/projects/manipulator-rl/">
+<meta property="og:image" content="https://amartya106.github.io/assets/img/projects/manipulator-rl/per_phase_summary.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f3ec">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&display=swap">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);}catch(e){d.setAttribute('data-theme','light');}if('IntersectionObserver' in window&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.className='js';})();</script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">Amartya Mishra</a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Notebook</a>
+      <a href="/projects/" aria-current="page">Work</a>
+      <a href="/about/">About</a>
+    </nav>
+    <span class="nav-tools">
+      <a href="https://github.com/Amartya106" rel="me noopener">github ↗</a>
+      <button class="theme-toggle" type="button" aria-label="Switch theme"></button>
+    </span>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap has-margin">
+
+  <section class="case">
+    <a class="back" href="/projects/">← Work</a>
+    <h1>Manipulation RL with a 7-DOF arm: where the curriculum stops working</h1>
+    <p class="abstract">
+      A six-phase curriculum on a simulated KUKA iiwa, from reaching to peg-in-hole,
+      trained with PPO and TQC and evaluated on unseen layouts. The first three phases
+      are solved. Insertion is not, and most of this page is about why.
+    </p>
+    <div class="meta-row">
+      <div><span>Status</span>result</div>
+      <div><span>Year</span>2026</div>
+      <div><span>Stack</span>PyBullet · Gymnasium · SB3</div>
+      <div><span>Algorithms</span>PPO · TQC</div>
+      <div><span>Code</span><a href="https://github.com/Amartya106/inter-iit-prep-ground-robo-15.0" rel="noopener">GitHub ↗</a></div>
+    </div>
+  </section>
+
+  <div class="prose">
+
+    <h2><span class="n">1</span>Setup</h2>
+    <p>
+      The environment is a 7-DOF KUKA iiwa arm in PyBullet, wrapped in Gymnasium and
+      trained with Stable-Baselines3. The supplied environment was rebuilt around
+      delta joint-position control, a 123-dimensional observation that stacks three
+      frames, and potential-based reward shaping<label for="sn1" class="sn-toggle"></label><input type="checkbox" id="sn1" class="sn-cb"><span class="sidenote">Ng, Harada &amp; Russell (1999). Shaping of the form <var>F</var> = γΦ(<var>s′</var>) − Φ(<var>s</var>) leaves the optimal policy unchanged, which is why it is safe to add.</span>.
+      Resets were made 25–30× faster, and the environment is covered by 18 tests.
+    </p>
+    <p>
+      Every phase adds one difficulty. Each number below is the success rate over 200
+      episodes on layouts the policy never saw during training, with a deterministic
+      policy.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Evaluation on 200 unseen layouts. Phase 4 is the unsolved case.</caption>
+        <thead>
+          <tr><th>Phase</th><th>Task</th><th class="num">Success</th><th class="num">Collisions</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Reaching (PPO)</td><td class="num">1.000</td><td class="num">–</td></tr>
+          <tr><td>1</td><td>Reaching (TQC)</td><td class="num">0.935</td><td class="num">–</td></tr>
+          <tr><td>2</td><td>Pick and place</td><td class="num">0.995</td><td class="num">–</td></tr>
+          <tr><td>3</td><td>Obstacle-aware</td><td class="num">0.86</td><td class="num">0.08</td></tr>
+          <tr><td>4</td><td>Peg-in-hole</td><td class="num">0.015–0.02</td><td class="num">–</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="fig-wide">
+      <img src="/assets/img/projects/manipulator-rl/per_phase_summary.png" width="910" height="520" loading="lazy"
+           alt="Bar chart of success and collision rate for phases 1 to 5; success is near 1.0 for phases 1 and 2, 0.86 for phase 3, and near zero for phases 4 and 5, where collision rate is above 0.5">
+      <figcaption><span class="fn">Fig. 1</span>In-distribution performance by phase. Success collapses at phase 4 while collision rate climbs above 0.5; phase 5 looks the same.</figcaption>
+    </figure>
+
+    <h2><span class="n">2</span>The failure</h2>
+    <p>
+      Peg-in-hole sits at 1.5–2% success, with a collision rate above 0.5 (Fig. 1).
+      Training only on the insertion
+      sub-task moved success from 0.040 to 0.073: better, still far from usable.
+      This is a reported negative result, kept in the write-up because it narrows the
+      problem down.
+    </p>
+    <div class="callout">
+      <p>
+        Working hypothesis: shaped distance rewards were enough for the earlier phases,
+        but insertion needs behaviour under contact that the reward never asked for.
+      </p>
+    </div>
+    <p>
+      This is a hypothesis, not something I've isolated with an ablation. The next step
+      is to test whether the same setup succeeds once contact forces are in the
+      observation.
+    </p>
+
+    <h2><span class="n">3</span>Generalisation and noise</h2>
+    <p>
+      The later phases test two things the first four don't: unseen dynamics, and
+      noise injected into observations and actions at evaluation time.<label for="sn2" class="sn-toggle"></label><input type="checkbox" id="sn2" class="sn-cb"><span class="sidenote">Because phase 4 and beyond never reached good in-distribution performance, there is little for these tests to degrade. The curves are mainly useful as a sanity check, and the cleaner experiment needs a solved task to start from.</span>
+    </p>
+    <figure class="fig-wide">
+      <img src="/assets/img/projects/manipulator-rl/noise_degradation.png" width="910" height="520" loading="lazy"
+           alt="Line chart for phase 6: success rate stays near zero across noise magnitudes from 0 to 0.08, while collision rate rises from about 0.43 to about 0.69">
+      <figcaption><span class="fn">Fig. 2</span>Phase 6 under eval-time noise. Success stays flat near zero; collision rate rises from about 0.43 at no noise to about 0.69 at σ = 0.08 (read from the plot).</figcaption>
+    </figure>
+    <figure class="fig-wide">
+      <img src="/assets/img/projects/manipulator-rl/generalization.png" width="1040" height="520" loading="lazy"
+           alt="Bar chart of success rate by phase for in-distribution and unseen-dynamics conditions; the unseen-dynamics bar is only visible for phase 4, near zero">
+      <figcaption><span class="fn">Fig. 3</span>In-distribution against unseen-dynamics success. Only phase 4 has an unseen-dynamics bar in this plot, so the comparison is incomplete; the full run log is in <code>EXPERIMENTS.md</code> (runs E1–E80).</figcaption>
+    </figure>
+
+    <h2><span class="n">4</span>PPO against TQC</h2>
+    <p>
+      TQC<label for="sn3" class="sn-toggle"></label><input type="checkbox" id="sn3" class="sn-cb"><span class="sidenote">Truncated Quantile Critics (Kuznetsov et al., ICML 2020), an off-policy method that truncates the upper quantiles of the critic distribution to curb overestimation.</span>
+      is the more sample-efficient algorithm in principle, but here it cost far more
+      wall-clock time and did not win on the task I could compare.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Algorithm</th><th class="num">Steps / s</th><th class="num">Reaching success</th></tr></thead>
+        <tbody>
+          <tr><td>PPO</td><td class="num">1,200–2,000</td><td class="num">1.000</td></tr>
+          <tr><td>TQC</td><td class="num">120–330</td><td class="num">0.935</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2><span class="n">5</span>What I would change</h2>
+    <ul>
+      <li>Add contact-force or tactile channels to the observation and test insertion again.</li>
+      <li>Run the dynamics-generalisation test on a task that is already solved, so a drop means something.</li>
+      <li>Repeat the PPO against TQC comparison on phases 2 and 3, not only reaching.</li>
+    </ul>
+
+    <h2><span class="n">6</span>References</h2>
+    <ul>
+      <li>Schulman et al. (2017). Proximal Policy Optimization Algorithms.</li>
+      <li>Kuznetsov, Shvechikov, Grishin, Vetrov (2020). Controlling Overestimation Bias with Truncated Mixture of Continuous Distributional Quantile Critics. ICML.</li>
+      <li>Ng, Harada, Russell (1999). Policy Invariance Under Reward Transformations. ICML.</li>
+      <li>Raffin et al. (2021). Stable-Baselines3. JMLR.</li>
+    </ul>
+  </div>
+</div>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="year">2026</span> Amartya Mishra · IIT (BHU) Varanasi</span>
+    <nav aria-label="Footer">
+      <a href="/">Notebook</a>
+      <a href="/projects/">Work</a>
+      <a href="/about/">About</a>
+      <a href="https://github.com/Amartya106" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/assets/js/main.js" defer></script>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>

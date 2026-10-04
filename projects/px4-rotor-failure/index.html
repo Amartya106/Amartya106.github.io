@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control allocation under rotor failure — Amartya Mishra</title>
+<meta name="description" content="Adding per-rotor effectiveness to PX4's control allocator and sweeping a quadrotor through partial motor failure in Gazebo SITL, comparing two allocation strategies.">
+<meta name="author" content="Amartya Mishra">
+<link rel="canonical" href="https://amartya106.github.io/projects/px4-rotor-failure/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Control allocation under rotor failure — Amartya Mishra">
+<meta property="og:description" content="Adding per-rotor effectiveness to PX4's control allocator and sweeping a quadrotor through partial motor failure in Gazebo SITL, comparing two allocation strategies.">
+<meta property="og:url" content="https://amartya106.github.io/projects/px4-rotor-failure/">
+<meta property="og:image" content="https://amartya106.github.io/assets/img/projects/px4-rotor-failure/sweep_final_recorded.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f3ec">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&display=swap">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);}catch(e){d.setAttribute('data-theme','light');}if('IntersectionObserver' in window&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.className='js';})();</script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">Amartya Mishra</a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Notebook</a>
+      <a href="/projects/" aria-current="page">Work</a>
+      <a href="/about/">About</a>
+    </nav>
+    <span class="nav-tools">
+      <a href="https://github.com/Amartya106" rel="me noopener">github ↗</a>
+      <button class="theme-toggle" type="button" aria-label="Switch theme"></button>
+    </span>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap has-margin">
+
+  <section class="case">
+    <a class="back" href="/projects/">← Work</a>
+    <h1>Control allocation when a rotor loses effectiveness</h1>
+    <p class="abstract">
+      PX4's allocator assumes every rotor delivers what it is told to. I added a
+      per-rotor effectiveness scale, injected partial failures in simulation, and
+      compared two ways of redistributing thrust. Hover survives moderate loss; the
+      interesting behaviour is at the edge.
+    </p>
+    <div class="meta-row">
+      <div><span>Status</span>result</div>
+      <div><span>Year</span>2026</div>
+      <div><span>Stack</span>PX4 SITL v1.18 beta · Gazebo Harmonic</div>
+      <div><span>Airframe</span>x500 quadrotor</div>
+      <div><span>Code</span><a href="https://github.com/Amartya106/inter-iit-prep-aerial-robo-15.0" rel="noopener">GitHub ↗</a></div>
+    </div>
+  </section>
+
+  <div class="prose">
+
+    <h2><span class="n">1</span>The question</h2>
+    <p>
+      A quadrotor has four actuators for a four-dimensional command (thrust plus
+      three torques). Map a desired wrench to motor commands through the effectiveness
+      matrix <var>B</var>:
+    </p>
+    <div class="math"><var>u</var> = <var>B</var><sup>+</sup> <var>τ</var><span class="q">(1)</span></div>
+    <p>
+      with <var>B</var><sup>+</sup> its pseudo-inverse.<label for="sn1" class="sn-toggle"></label><input type="checkbox" id="sn1" class="sn-cb"><span class="sidenote">With four actuators and a four-dimensional command, <var>B</var> is square. Scaling one rotor's column down shrinks the authority available in that direction, and at 0% the matrix loses rank. Once commands saturate, the allocator has to give something up, and which thing is the experiment.</span>
+      When one rotor degrades, the command no longer maps to the force that rotor
+      actually produces. What does the allocator do, and does the vehicle stay in the
+      air?
+    </p>
+
+    <h2><span class="n">2</span>What I changed</h2>
+    <ul>
+      <li>A per-rotor effectiveness scale inside <code>ActuatorEffectivenessRotors</code>, scaling each column of <var>B</var>.</li>
+      <li>A <code>failure_scheduler</code> module that steps a chosen rotor through a sequence of effectiveness levels on a timer.</li>
+      <li>A <code>RotorEffectiveness</code> uORB message so the scale is visible to the rest of the stack and to logging.</li>
+    </ul>
+
+    <h2><span class="n">3</span>Reference: no change to the allocator</h2>
+    <p>
+      The baseline is a hard motor failure with the stock allocator. The allocator
+      responded about 504 ms after injection and the vehicle then lost attitude.
+    </p>
+    <figure class="fig-wide">
+      <img src="/assets/img/projects/px4-rotor-failure/phase1_reference.png" width="1281" height="701" loading="lazy"
+           alt="Motor commands against time: flat at about 0.73 until the injection marker, then the allocator response marker half a second later, after which the commands swing between 0 and 1 and keep saturating">
+      <figcaption><span class="fn">Fig. 1</span>Reference run. Dashed line: failure injection. Dotted line: first allocator response. After it, the motor commands saturate at 0 and 1 and do not recover.</figcaption>
+    </figure>
+
+    <h2><span class="n">4</span>Sweeping effectiveness</h2>
+    <p>
+      The sweep steps one rotor from 100% to 75%, 50%, 25% and 0% effectiveness at a
+      hold altitude of 20 m. With sequential desaturation the vehicle held hover at
+      75% and 50%, each with a transient peaking near 0.85 command that damped out in
+      about 1.5 s.
+    </p>
+    <figure class="fig-wide">
+      <img src="/assets/img/projects/px4-rotor-failure/sweep_final_recorded.png" width="1783" height="1184" loading="lazy"
+           alt="Two stacked plots. Top: altitude holds at 20 metres through the 75 and 50 percent steps, then falls to the ground shortly after the 25 percent step. Bottom: four motor commands near 0.73 with damped spikes at each step, then divergence after 25 percent.">
+      <figcaption><span class="fn">Fig. 2</span>Recorded sweep. Altitude is held through the 75% and 50% steps. After the step to 25% the vehicle loses altitude and reaches the ground within a few seconds.</figcaption>
+    </figure>
+
+    <p>
+      The comparison that matters is how thrust is redistributed once a rotor can no
+      longer deliver its share:
+    </p>
+    <div class="table-wrap">
+      <table>
+        <caption>Motor commands at 50% effectiveness on one rotor (normalised). The two strategies are close; the difference is in how the shortfall is shared.</caption>
+        <thead><tr><th>Strategy</th><th class="num">M0</th><th class="num">M1</th><th class="num">M2</th><th class="num">M3</th></tr></thead>
+        <tbody>
+          <tr><td>Sequential desaturation</td><td class="num">0.7289</td><td class="num">0.7285</td><td class="num">0.7287</td><td class="num">0.7286</td></tr>
+          <tr><td>Pseudo-inverse</td><td class="num">0.7255</td><td class="num">0.7276</td><td class="num">0.7285</td><td class="num">0.7288</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figure class="fig-wide">
+      <img src="/assets/img/projects/px4-rotor-failure/sweep_pseudoinverse.png" width="1783" height="1184" loading="lazy"
+           alt="Two stacked plots for the pseudo-inverse variant. Top: altitude stays at 20 metres through the 75, 50 and 25 percent steps and falls only after the 0 percent step. Bottom: motor commands stay near 0.73 with small transients, then saturate after the 0 percent step.">
+      <figcaption><span class="fn">Fig. 3</span>The same sweep with the pseudo-inverse allocator. Here altitude holds through the 25% step and the vehicle falls at 0%.</figcaption>
+    </figure>
+
+    <div class="callout">
+      <p>
+        The two runs differ at 25%: the recorded sequential-desaturation run lost
+        altitude, the pseudo-inverse run did not. I have not yet repeated either
+        run, so I would not call that a ranking of the two methods.
+      </p>
+    </div>
+
+    <h2><span class="n">5</span>Limits</h2>
+    <ul>
+      <li>Each configuration was run once, so I have no measure of run-to-run variation.</li>
+      <li>The 0% case was not measured at altitude in the recorded sweep.</li>
+      <li>Simulation only: no motor dynamics beyond what Gazebo models, no real ESC or battery sag.</li>
+    </ul>
+
+    <h2><span class="n">6</span>Next</h2>
+    <p>
+      Repeat each configuration across seeds, then compare the two allocators on the
+      25% case with error bars. A learned allocation policy is the obvious
+      follow-up, and the place where I would want a stability argument to sit
+      alongside the reward curve.
+    </p>
+
+  </div>
+</div>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="year">2026</span> Amartya Mishra · IIT (BHU) Varanasi</span>
+    <nav aria-label="Footer">
+      <a href="/">Notebook</a>
+      <a href="/projects/">Work</a>
+      <a href="/about/">About</a>
+      <a href="https://github.com/Amartya106" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/assets/js/main.js" defer></script>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>
